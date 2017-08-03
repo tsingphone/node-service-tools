@@ -1,18 +1,26 @@
 console.log('00000000000000');
 var zmq = require('zeromq');
-var sender = zmq.socket('rep');
+var sender = zmq.socket('dealer');
+sender.connect('tcp://127.0.0.1:5555');
+console.log('222222222  rpc   server  222222222');
+//sender.connect('tcp://127.0.0.1:6666');
 
-console.log('222222222222222222');
-sender.bindSync('tcp://127.0.0.1:3000');
-
-console.log('Producer bound to port 3000');
-
-sender.on('message', function(msg){
-    console.log('received : %s', msg.toString());
-    setTimeout(function () {
-        sender.send('reply2  ' + msg);
-    },1000)
-    setTimeout(function () {
+sender.on('message', function(){
+    var args = Array.apply(null, arguments);
+    var msg = args[1]
+    var msgObj = JSON.parse(msg);
+    //var t = Math.ceil(Math.random()*200);
+    msgObj.serverrandout = 0;//t;
+    //console.log(msgObj.gid + '   :@rand= ' + t + ' @seq= ' + msgObj.seq);
+    sender.send([args[0], '', JSON.stringify(msgObj)]);
+    /*setTimeout(function () {
+        sender.send([args[0], '', JSON.stringify(msgObj)]);
+    },t);*/
+  /*  setTimeout(function () {
         sender.send('reply1  ' + msg);
-    },500)
+    },500)*/
+});
+
+sender.on('error', function(err){
+    console.log(err)
 });
