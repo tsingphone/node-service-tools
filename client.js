@@ -1,8 +1,10 @@
 var zmq = require('zeromq');
 var requester = zmq.socket('dealer');
+var receiver = zmq.socket('dealer');
 
 var log = console.log;
 requester.connect('tcp://127.0.0.1:6666');
+receiver.connect('tcp://127.0.0.1:5555');
 
 var i=0;
 var t = Math.ceil(Math.random()*300);
@@ -30,6 +32,20 @@ setInterval(function(){
 
 var lst = 0;
 requester.on('message', function(){
+    console.log('from server 6666');
+    return;
+
+
+    var args = Array.apply(null, arguments);
+    var msg = args[1]
+    var msgObj = JSON.parse(msg);
+    var endt = new Date().getTime();
+    lst += msgObj.serverrandout;
+    console.log( msgObj.gid + ', @seq= ' + msgObj.seq + ', @serverRandTimeout= ' + msgObj.serverrandout + ', @lastTime= ' + lst +   ', @alltime= ' + (endt - msgObj.start));
+
+});
+
+receiver.on('message', function(){
     var args = Array.apply(null, arguments);
     var msg = args[1]
     var msgObj = JSON.parse(msg);
