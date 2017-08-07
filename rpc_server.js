@@ -18,8 +18,13 @@ server.on('connection',function (sock) {
     })
 
     sock.on('data',function (data) {
-        log('sock data')
-        log(data.toString())
+        if (data.length>1000)
+            log('sock data: ' + data.length)
+        else
+            log('---------: ' + data.length)
+        //let len = data.readInt16BE(0);
+        //log(len.toString(10));
+        //log(data.toString())
         //log(sock)
 
     })

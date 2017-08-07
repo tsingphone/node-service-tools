@@ -2,7 +2,11 @@ const rpc = require('./rpc_client');
 
 let log = console.log;
 
+
+
 setInterval(function () {
-    log('time:' + new Date().getTime())
-    rpc.write('time:' + new Date().getTime())
-}, 3000)
+    rpc.writeMsg('time:' + new Date().getTime())
+}, 20)
+
+
+rpc.writeFile('time:' + new Date().getTime())
