@@ -8,7 +8,7 @@ let options = {
 
 
 let server = net.createServer(options);
-
+server.stat = {counter:0,calls:{}};
 server.on('connection',function (sock) {
     log('server 已建立连接');
     //log(sock);
@@ -23,7 +23,7 @@ server.on('connection',function (sock) {
         else
             log('---------: ' + data.length)
 
-        server.call(JSON.parse(data.toString()));
+        server.callService(sock,JSON.parse(data.toString()));
 
         //let len = data.readInt16BE(0);
         //log(len.toString(10));
@@ -71,7 +71,8 @@ server.on('error',function (err) {
 server.callService = function (reqJson) {
     let {seq, serviceName, args} = reqJson;
     let callback = function (err,data) {
-        
+        let respObj = {seq,err,data};
+
     }
     server.services[serviceName].apply(null,args)
     //{seq,err,data}
