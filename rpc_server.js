@@ -22,6 +22,9 @@ server.on('connection',function (sock) {
             log('sock data: ' + data.length)
         else
             log('---------: ' + data.length)
+
+        server.call(JSON.parse(data.toString()));
+
         //let len = data.readInt16BE(0);
         //log(len.toString(10));
         //log(data.toString())
@@ -64,6 +67,21 @@ server.on('error',function (err) {
         server.listen(options.port);
     }, 1000);
 })
+
+server.call = function (reqJson) {
+    let {seq, serviceName, args} = reqJson;
+    server.services[serviceName]
+    //{seq,err,data}
+}
+
+server.services = {};
+server.services.add = function (a,b,callback) {
+    callback(null,a+b);
+}
+
+server.services.err = function (a,b,callback) {
+    callback('这是测试错误',null);
+}
 
 server.listen(options.port);
 
