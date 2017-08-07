@@ -3,56 +3,49 @@ let net = require('net');
 
 let log = console.log;
 let options = {
+    host:'127.0.0.1',
     port:8000
 };
 
 
-let server = net.createServer(options);
+let client = new net.connect(options);
 
-server.on('connection',function (sock) {
-    log('server 已建立连接');
+client.on('connection',function (sock) {
+    log('client 已建立连接');
     log(sock);
-
-    sock.on('connect',function (data) {
-
-    })
-
-    sock.on('data',function (data) {
-
-    })
-
-    sock.on('clsoe',function (data) {
-
-    })
-
-    sock.on('end',function (data) {
-
-    })
-
-    sock.on('error',function (data) {
-
-    })
-
-    sock.on('drain',function (data) {
-
-    })
-
-    sock.on('timeout',function (data) {
-
-    })
-
-
 });
 
-server.on('close',function (sock) {
+client.on('close',function (sock) {
     log('服务器关闭')
 });
 
-server.on('error',function (err) {
-    log('socket 服务器错误，将在1秒后重连');
-    log(err);
+client.on('error',function (err) {
+    log('socket连接错误，将在1秒后重连');
+    //log(err);
     setTimeout(() => {
-        server.close();
-        server.listen(options.port);
+        client.end();
+        client.connect(options);
     }, 1000);
 })
+
+client.on('data',function (data) {
+    log('data')
+    log(data)
+
+})
+
+client.on('end',function (data) {
+    log('end')
+})
+
+
+client.on('drain',function (data) {
+    log('drain')
+})
+
+client.on('timeout',function (data) {
+    log('timeout')
+})
+
+
+module.exports = client;
