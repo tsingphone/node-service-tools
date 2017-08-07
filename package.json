@@ -8,8 +8,10 @@
     "url": "https://github.com/tsingphone/node-service-tools.git"
   },
   "dependencies": {
+    "dnode": "^1.2.2",
     "nan": "^2.6.2",
     "prebuild-install": "^2.1.2",
+    "thrift": "^0.10.0",
     "zeromq": "^4.5.0"
   },
   "devDependencies": {},
