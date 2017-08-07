@@ -68,9 +68,12 @@ server.on('error',function (err) {
     }, 1000);
 })
 
-server.call = function (reqJson) {
+server.callService = function (reqJson) {
     let {seq, serviceName, args} = reqJson;
-    server.services[serviceName]
+    let callback = function (err,data) {
+        
+    }
+    server.services[serviceName].apply(null,args)
     //{seq,err,data}
 }
 
