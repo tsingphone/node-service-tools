@@ -5,7 +5,7 @@ let log = console.log;
 
 
 setInterval(function () {
-    rpc.writeMsg('time:' + new Date().getTime())
+    rpc.sendMsg('time:' + new Date().getTime())
 }, 20)
 
 
