@@ -39,6 +39,7 @@ client.on('error',function (err) {
 client.on('data',function (data) {
     log('data')
     log(data)
+    client.responseCall(JSON.parse(data.toString()))
 
 })
 
@@ -69,19 +70,20 @@ client.writeFile = function (msg) {
 }
 
 client.sendMsg = function (msg) {
-    log(msg);
+    this.write(msg)
     //    let buf1 = Buffer.from(msg);
-        let buf1 = Buffer.alloc(810).fill('我');
+/*        let buf1 = Buffer.alloc(810).fill('我');
         let len = buf1.length;
         let buf2 = Buffer.alloc(2);
         buf2.writeInt16BE(len,0)
         let buf = Buffer.concat([buf2, buf1],len + buf2.length)
-        this.write(buf);
+        this.write(buf);*/
 }
 
 client.call = function (serviceName,args,callback) {
     //
-    let seq = client.counter++;
+    let seq = client.seq++;
+    client.counter++;
     let obj = {
         seq:seq,
         serviceName:serviceName,
@@ -91,11 +93,22 @@ client.call = function (serviceName,args,callback) {
         if (client.calls[seq]) {
             client.calls[seq].callback('服务器调用超时',null);
             delete client.calls[seq];
+            client.counter--;
         }
     },options.delay);
     client.calls[seq] = {timeout,callback};
     client.sendMsg(obj);
-
 }
 
+/*
+msg = {seq, err, data}
+* */
+client.responseCall = function (msg) {
+    let {seq,err,data} = msg;
+    if (client.calls[seq]) {
+        client.calls[seq].callback(err,data);
+        delete client.calls[seq];
+        client.counter--;
+    }
+}
 module.exports = client;
