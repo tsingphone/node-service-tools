@@ -29,6 +29,10 @@ class RPCServer {
         };
         this.options = options;
         this.methods = {};
+
+        this.waitingQue = [];
+        this.callingRequest = {};  //Hash Object
+
         this.connection = net.createServer(options);
         this.bindingServerEvent();
         this.connection.listen(this.options.port);
@@ -44,9 +48,7 @@ class RPCServer {
         //{seq,err,data}
     };
 
-    auth(callback) {
-        return callback(null,true);
-    }
+
 
     bindingServerEvent() {
         let self = this;
@@ -79,27 +81,12 @@ class RPCServer {
 
         sock.on('data', function (data) {
             let msgObj = JSON.parse(data.toString());
-            if (msgObj.type === 'auth') {
-                self.auth(function (err,result) {
-                    if (result) {  //身份验证通过
-
-                    }
-                    else {
-                        let msgObj = {
-                            type:'auth',
-                            data:false
-                        }
-                        self.client.write(JSON.stringify(msgObj));
-                    }
-                })
-            }
+            self.handleMsgObject(msgObj);
 
             /* if (data.length>1000)
                  log('sock data: ' + data.length)
              else
                  log('---------: ' + data.length)*/
-
-            log('dddddddd')
             log(JSON.parse(data.toString()));
             //this.connection.callService(sock,JSON.parse(data.toString()));
 
@@ -129,6 +116,45 @@ class RPCServer {
         sock.on('timeout', function (data) {
             log('sock timeout')
         })
+    }
+
+    handleMsgObject(msgObj) {
+        if (msgObj.type === 'auth') {
+            self.auth(function (err,result) {
+                if (result) {  //身份验证通过
+
+                }
+                else {
+                    let msgObj = {
+                        type:'auth',
+                        data:false
+                    }
+                    self.client.write(JSON.stringify(msgObj));
+                }
+            })
+        }
+        else {  //if (msgObj.type === 'call')
+            this.waitingQue.push(msgObj);
+        }
+
+    }
+
+    loopDealMsg() {
+        //log(1)
+        while (this.waitingQue.length>0) {
+            //发送请求数据
+            let msg = this.waitingQue.shift();
+            this.callingRequest[msg.id] = msg;
+        }
+        //process.nextTick(this.loopSendMsg());
+        let self = this;
+        setTimeout(function (){
+            self.loopSendMsg();
+        },500)
+    }
+
+    auth(callback) {
+        return callback(null,true);
     }
 
     registerService() {
