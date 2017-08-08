@@ -1,13 +1,39 @@
 let net = require('net');
 let fs = require('fs');
 
-
 let log = console.log;
-let options = {
-    host:'127.0.0.1',
-    port:8000,
-    delay:5000
-};
+
+class RPCClient {
+    constructor(options) { //构造函数
+        options = {
+            host:'127.0.0.1',
+            port:8000,
+            delay:5000
+        };
+        this.options = options;
+        this.services = [
+            {
+                host:'127.0.0.1',
+                port:8000
+            }
+        ];
+        this.waitingQue = [];
+        this.sendedQue = [];
+
+        this.counter = 0;
+        this.seq = 0;
+        this.clients = [];
+        for(let s of this.services) {
+            let client = new net.connect(options);
+            this.clients.push(client);
+
+        }
+    }  //结束构造器
+
+}
+
+
+
 
 
 let client = new net.connect(options);
