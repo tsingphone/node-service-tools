@@ -44,10 +44,14 @@ class RPCServer {
         //{seq,err,data}
     };
 
+    auth(callback) {
+        return callback(null,true);
+    }
+
     bindingServerEvent() {
         let self = this;
         this.connection.on('connection',function (sock) {
-            log('server 已建立连接');
+            //sock.write('test from server')
             //log(sock);
             self.bindingSocketEvent(sock);
 
@@ -68,17 +72,35 @@ class RPCServer {
     }
 
     bindingSocketEvent(sock) {
+        let self = this;
         sock.on('connect', function (data) {
             log('sock connect')
         })
 
         sock.on('data', function (data) {
+            let msgObj = JSON.parse(data.toString());
+            if (msgObj.type === 'auth') {
+                self.auth(function (err,result) {
+                    if (result) {  //身份验证通过
+
+                    }
+                    else {
+                        let msgObj = {
+                            type:'auth',
+                            data:false
+                        }
+                        self.client.write(JSON.stringify(msgObj));
+                    }
+                })
+            }
+
             /* if (data.length>1000)
                  log('sock data: ' + data.length)
              else
                  log('---------: ' + data.length)*/
 
-            log(data.toString());
+            log('dddddddd')
+            log(JSON.parse(data.toString()));
             //this.connection.callService(sock,JSON.parse(data.toString()));
 
             //let len = data.readInt16BE(0);

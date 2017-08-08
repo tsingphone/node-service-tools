@@ -5,15 +5,21 @@ let log = console.log;
 
 class SocketClient {
     constructor(options) {
+        options = {
+            host:'127.0.0.1',
+            port:8000
+        }
         this.options = options;
         this.counter = 0;
         this.seq = 0;
         this.calls = {};
         this.isActive = 0;
         this.client = net.Socket();
-        new net.connect(options);
+        this.client.connect(options);
         this.bindingEvent();
     }
+
+
 
     sendMsg(msg) {
         log('send')
@@ -29,10 +35,17 @@ class SocketClient {
     }
 
     bindingEvent() {
+        log('binding')
         let self = this;
-        this.client.on('connection',function (sock) {
+        this.client.on('connect',function () {
+            log(arguments)
             self.isActive = 1;
             log('client 已建立连接');
+            let msg = {
+                type: 'auth',
+                data: self.rpcServer.seq
+            }
+            self.client.write(JSON.stringify(msg))
         });
 
         this.client.on('close',function (sock) {
@@ -49,9 +62,11 @@ class SocketClient {
         })
 
         this.client.on('data',function (data) {
-            log('data')
-            log(data)
-            this.client.responseCall(JSON.parse(data.toString()))
+            log(data.toString())
+
+
+            log(msgObj)
+            //this.client.responseCall(JSON.parse(data.toString()))
 
         })
 
