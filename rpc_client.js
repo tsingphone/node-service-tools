@@ -51,7 +51,7 @@ class SocketClient {
             setTimeout(() => {
                 self.client.end();
                 self.client.connect(self.options);
-            }, 0);
+            }, 1000);
         })
 
         this.client.on('data',function (data) {
@@ -183,9 +183,9 @@ class RPCClient {
         }
         //process.nextTick(this.loopSendMsg());
         let self = this;
-        setTimeout(function (){
+        setImmediate(function (){
             self.loopSendMsg();
-        },0)
+        })
     }
 
     loopPullMsg() {
@@ -206,9 +206,9 @@ class RPCClient {
         }
         //process.nextTick(this.loopPullMsg);
         let self = this;
-        setTimeout(function (){
+        setImmediate(function (){
             self.loopPullMsg();
-        },0)
+        })
     }
 
     getConnection() {  //在这里可以设计负载均衡算法； //按照依次发送

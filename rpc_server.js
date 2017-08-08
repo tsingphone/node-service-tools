@@ -185,9 +185,9 @@ class RPCServer {
             log( '4  @  ' + new Date().getTime())
         }
         //process.nextTick(this.loopSendMsg());
-        setTimeout(function (){
+        setImmediate(function (){
             self.loopDealMsg();
-        },0)
+        })
     }
 
     sendMsg(socketId,msgObj) {
