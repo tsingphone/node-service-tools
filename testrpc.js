@@ -7,7 +7,7 @@ let rpc = new RPC();
 
 setInterval(function () {
     rpc.callService('add',[1,2],function (err,data) {
-        log('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+        log('rrrssrrrrrrrrrrrrrrrrrrrrrrrrrrr')
         log(err);
         log(data);
     })
