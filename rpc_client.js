@@ -5,15 +5,19 @@ let log = console.log;
 
 class SocketClient {
     constructor(options) {
+        this.options = options;
         this.counter = 0;
         this.seq = 0;
         this.calls = {};
-
-        this.client = new net.connect(options);
-        this.bindingClientEvent();
+        this.isActive = 0;
+        this.client = net.Socket();
+        new net.connect(options);
+        this.bindingEvent();
     }
 
     sendMsg(msg) {
+        log('send')
+        log(msg)
         this.write(msg)
         //    let buf1 = Buffer.from(msg);
         /*        let buf1 = Buffer.alloc(810).fill('我');
@@ -24,8 +28,10 @@ class SocketClient {
                 this.write(buf);*/
     }
 
-    bindingClientEvent() {
+    bindingEvent() {
+        let self = this;
         this.client.on('connection',function (sock) {
+            self.isActive = 1;
             log('client 已建立连接');
         });
 
@@ -86,19 +92,22 @@ class RPCClient {
         this.sendedRequest = {};  //Hash Object
         this.receivedQue = [];
 
-        this.counter = 0;
         this.seq = 0;
         this.curConnIndex = 0;
         this.connections = [];
         for(let s of this.services) {
             let sock = new SocketClient(this.options);
+            sock.rpcServer = this;
             this.connections.push(sock);
         }
+
+        this.loopSendMsg();
+        this.loopPullMsg();
+
     }  //结束构造器
 
-
-
     callService(serviceName,argsArray,callback) {
+        //debugger
         if (this.waitingQue.length >= this.options.maxWaiting) {
             callback('服务器繁忙',null);
             return;
@@ -130,24 +139,31 @@ class RPCClient {
     }
 
     loopSendMsg() {
-        log(1)
-        if (this.waitingQue.length>0) {
+        //log(1)
+        while (this.waitingQue.length>0) {
             //发送请求数据
+            let msg = this.waitingQue.shift();
+            log('sending')
+            log(msg);
             let conn = this.getConnection();
             if (!conn) {
-                log('当前服务器连接不可用');
-                return;
+                msg.callback('当前服务器连接不可用',null);
             }
-            let msg = this.waitingQue.shift();
-            this.sendedRequest[msg.id] = msg;
-            conn.sendMsg(msg);
+            else {
+                this.sendedRequest[msg.id] = msg;
+                conn.sendMsg(msg);
+            }
         }
-        process.nextTick(this.loopSendMsg());
+        //process.nextTick(this.loopSendMsg());
+        let self = this;
+        setTimeout(function (){
+            self.loopSendMsg();
+        },500)
     }
 
     loopPullMsg() {
-        log(2)
-        n = this.receivedQue.length;
+        //log(2)
+        let n = this.receivedQue.length;
         for(let i=0; i<n; i++) {
             let resObj = this.receivedQue.shift();
             let id = resObj.id;
@@ -161,7 +177,11 @@ class RPCClient {
                 delete this.sendedRequest[id];  //?
             }
         }
-        process.nextTick(this.loopSendMsg());
+        //process.nextTick(this.loopPullMsg);
+        let self = this;
+        setTimeout(function (){
+            self.loopPullMsg();
+        },10000)
     }
 
     getConnection() {  //在这里可以设计负载均衡算法； //按照依次发送
@@ -197,10 +217,15 @@ class RPCClient {
 
 }
 
-client.call = function (serviceName,args,callback) {
+
+
+
+
+
+/*client.call = function (serviceName,args,callback) {
     //
 
-}
+}*/
 
 /*
 msg = {seq, err, data}

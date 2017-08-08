@@ -3,10 +3,14 @@ const RPC = require('./rpc_client');
 let log = console.log;
 
 let rpc = new RPC();
-rpc.callService('add',[1,2],function (err,data) {
-    log(err);
-    log(data);
-})
+
+
+setInterval(function () {
+    rpc.callService('add',[1,2],function (err,data) {
+        log(err);
+        log(data);
+    })
+}, 1000)
 
 /*var f = function (a,b) {
     return (a + b);
