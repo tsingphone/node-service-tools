@@ -90,7 +90,6 @@ class SocketClient {
             }
         }
         else {  //计算结果返回
-            log(msgObj)
             this.rpcServer.receivedQue.push(msgObj);
         }
     }
@@ -177,7 +176,7 @@ class RPCClient {
                 msg.callback('当前服务器连接不可用',null);
             }
             else {
-                this.sendedRequest[msg.id] = msg;
+                this.sendedRequest[msg.id.toString()] = msg;
                 //id,serviceName,argsArray,callback
                 conn.sendMsg({
                     id:msg.id,
@@ -194,17 +193,19 @@ class RPCClient {
     }
 
     loopPullMsg() {
-        //log(2)
         let n = this.receivedQue.length;
         for(let i=0; i<n; i++) {
             let resObj = this.receivedQue.shift();
             let id = resObj.id;
-            if (typeof id !== 'string' ) {
+            log('aaaaaaaaaaaaaa')
+            log(id)
+            /*if (typeof id !== 'string' ) {
                 continue;  //直接丢弃
-            }
-            let req = this.sendedRequest[id];
+            }*/
+            let req = this.sendedRequest[id.toString()];
             if (req) {
                 req.state = 2;  //?
+                log('bbbbbbbbbbbbbbbbb')
                 req.callback && req.callback(resObj.error,resObj.data);
                 delete this.sendedRequest[id];  //?
             }
@@ -213,7 +214,7 @@ class RPCClient {
         let self = this;
         setTimeout(function (){
             self.loopPullMsg();
-        },10000)
+        },1000)
     }
 
     getConnection() {  //在这里可以设计负载均衡算法； //按照依次发送
