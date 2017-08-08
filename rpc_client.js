@@ -67,22 +67,23 @@ class SocketClient {
 
 
 class RPCClient {
-    constructor(options) { //构造函数
+    constructor(options,services) { //构造函数
         options = {
             host:'127.0.0.1',
             port:8000,
             delay:5000,
             maxWaiting:1000
         };
-        this.options = options;
-        this.services = [
+        services = [
             {
                 host:'127.0.0.1',
                 port:8000
             }
         ];
+        this.services = services;
+        this.options = options;
         this.waitingQue = [];
-        this.sendedQue = [];
+        this.sendedRequest = {};  //Hash Object
         this.receivedQue = [];
 
         this.counter = 0;
@@ -98,14 +99,34 @@ class RPCClient {
 
 
     callService(serviceName,argsArray,callback) {
-        if (this.waitingQue.length >= maxWaiting) {
+        if (this.waitingQue.length >= this.options.maxWaiting) {
             callback('服务器繁忙',null);
             return;
         }
         let s = {serviceName,argsArray,callback};
-        s.id = this.seq++;
-        if(this.seq >= 9007199254740991) this.seq = 0;
+        s.id = ++this.seq;
+        if(this.seq >= 9007199254740991) {
+            this.seq = 0;
+        }
         this.waitingQue.push(s)
+        /*
+        let seq = client.seq++;
+        client.counter++;
+        let obj = {
+            seq:seq,
+            serviceName:serviceName,
+            args:args
+        }
+        let timeout = setTimeout(function () {
+            if (client.calls[seq]) {
+                client.calls[seq].callback('服务器调用超时',null);
+                delete client.calls[seq];
+                client.counter--;
+            }
+        },options.delay);
+        client.calls[seq] = {timeout,callback};
+        client.sendMsg(obj);
+        */
     }
 
     loopSendMsg() {
@@ -118,7 +139,7 @@ class RPCClient {
                 return;
             }
             let msg = this.waitingQue.shift();
-            this.sendedQue.push(msg);
+            this.sendedRequest[msg.id] = msg;
             conn.sendMsg(msg);
         }
         process.nextTick(this.loopSendMsg());
@@ -126,22 +147,24 @@ class RPCClient {
 
     loopPullMsg() {
         log(2)
-        if (this.waitingQue.length>0) {
-            //发送请求数据
-            let conn = this.getConnection();
-            if (!conn) {
-                log('当前服务器连接不可用');
-                return;
+        n = this.receivedQue.length;
+        for(let i=0; i<n; i++) {
+            let resObj = this.receivedQue.shift();
+            let id = resObj.id;
+            if (typeof id !== 'string' ) {
+                continue;  //直接丢弃
             }
-            let msg = this.waitingQue.shift();
-            this.sendedQue.push(msg);
-            conn.sendMsg(msg);
+            let req = this.sendedRequest[id];
+            if (req) {
+                req.state = 2;  //?
+                req.callback && req.callback(resObj.error,resObj.data);
+                delete this.sendedRequest[id];  //?
+            }
         }
         process.nextTick(this.loopSendMsg());
     }
 
-    getConnection() {  //在这里可以设计负载均衡算法
-        //按照一次发送来
+    getConnection() {  //在这里可以设计负载均衡算法； //按照依次发送
         let n = this.services.length;
         let i = this.curConnIndex;
         let c = 0;
@@ -159,55 +182,30 @@ class RPCClient {
         return this.services[i];
     }
 
+    //从服务器获取方法后，赋予成员方法
+    setMethods() {
+        let names = ['add','err'];
+        for(let m of names) {
+            this[m] = function () {
+                log(this)
+            }
+        }
+
+    }
+
 
 
 }
-
-
-
-
-
-let client = new net.connect(options);
-client.bufferSize = 512;
-
-client.writeFile = function (msg) {
-    let fsr = fs.createReadStream('C:\\War3x.mpq');
-    fsr.pipe(this);
-
-/*//    let buf1 = Buffer.from(msg);
-    let buf1 = Buffer.alloc(810).fill('我');
-    let len = buf1.length;
-    let buf2 = Buffer.alloc(2);
-    buf2.writeInt16BE(len,0)
-    let buf = Buffer.concat([buf2, buf1],len + buf2.length)
-    this.write(buf);*/
-}
-
-
 
 client.call = function (serviceName,args,callback) {
     //
-    let seq = client.seq++;
-    client.counter++;
-    let obj = {
-        seq:seq,
-        serviceName:serviceName,
-        args:args
-    }
-    let timeout = setTimeout(function () {
-        if (client.calls[seq]) {
-            client.calls[seq].callback('服务器调用超时',null);
-            delete client.calls[seq];
-            client.counter--;
-        }
-    },options.delay);
-    client.calls[seq] = {timeout,callback};
-    client.sendMsg(obj);
+
 }
 
 /*
 msg = {seq, err, data}
 * */
+/*
 client.responseCall = function (msg) {
     let {seq,err,data} = msg;
     if (client.calls[seq]) {
@@ -216,4 +214,6 @@ client.responseCall = function (msg) {
         client.counter--;
     }
 }
-module.exports = client;
+*/
+
+module.exports = RPCClient;

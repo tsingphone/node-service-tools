@@ -1,12 +1,18 @@
-//const rpc = require('./rpc_client');
+const RPC = require('./rpc_client');
 
 let log = console.log;
 
-var f = function (a,b) {
+let rpc = new RPC();
+rpc.callService('add',[1,2],function (err,data) {
+    log(err);
+    log(data);
+})
+
+/*var f = function (a,b) {
     return (a + b);
 }
 
-log(f.apply(null,[2,3]))
+log(f.apply(null,[2,3]))*/
 
 /*
 
