@@ -10,19 +10,14 @@ class SocketClient {
             port:8000
         }
         this.options = options;
-        this.counter = 0;
-        this.seq = 0;
-        this.calls = {};
         this.isActive = 0;
         this.client = net.Socket();
         this.client.connect(options);
         this.bindingEvent();
     }
 
-
-
     sendMsg(msgObj) {
-        log('send')
+        log( '3  @  ' + new Date().getTime())
         this.client.write(JSON.stringify(msgObj))
         //    let buf1 = Buffer.from(msg);
         /*        let buf1 = Buffer.alloc(810).fill('我');
@@ -34,7 +29,6 @@ class SocketClient {
     }
 
     bindingEvent() {
-        log('binding')
         let self = this;
         this.client.on('connect',function () {
             log(arguments)
@@ -42,7 +36,7 @@ class SocketClient {
             log('client 已建立连接');
             let msg = {
                 type: 'auth',
-                data: self.rpcServer.id
+                data: self.owner.id
             }
             self.client.write(JSON.stringify(msg))
         });
@@ -57,11 +51,13 @@ class SocketClient {
             setTimeout(() => {
                 self.client.end();
                 self.client.connect(self.options);
-            }, 1000);
+            }, 0);
         })
 
         this.client.on('data',function (data) {
+            log( '4  @  ' + new Date().getTime())
             self.handleMsgObject(JSON.parse(data.toString()));
+            log( '5  @  ' + new Date().getTime())
             //this.client.responseCall(JSON.parse(data.toString()))
         })
 
@@ -90,7 +86,7 @@ class SocketClient {
             }
         }
         else {  //计算结果返回
-            this.rpcServer.receivedQue.push(msgObj);
+            this.owner.receivedQue.push(msgObj);
         }
     }
 }
@@ -123,7 +119,7 @@ class RPCClient {
         this.connections = [];
         for(let s of services) {
             let sock = new SocketClient(this.options);
-            sock.rpcServer = this;
+            sock.owner = this;
             this.connections.push(sock);
         }
 
@@ -168,9 +164,8 @@ class RPCClient {
         //log(1)
         while (this.waitingQue.length>0) {
             //发送请求数据
+            log( '2  @  ' + new Date().getTime())
             let msg = this.waitingQue.shift();
-            log('sending')
-            log(msg);
             let conn = this.getConnection();
             if (!conn) {
                 msg.callback('当前服务器连接不可用',null);
@@ -183,13 +178,14 @@ class RPCClient {
                     serviceName:msg.serviceName,
                     argsArray:msg.argsArray
                 });
+
             }
         }
         //process.nextTick(this.loopSendMsg());
         let self = this;
         setTimeout(function (){
             self.loopSendMsg();
-        },500)
+        },0)
     }
 
     loopPullMsg() {
@@ -197,15 +193,13 @@ class RPCClient {
         for(let i=0; i<n; i++) {
             let resObj = this.receivedQue.shift();
             let id = resObj.id;
-            log('aaaaaaaaaaaaaa')
-            log(id)
             /*if (typeof id !== 'string' ) {
                 continue;  //直接丢弃
             }*/
             let req = this.sendedRequest[id.toString()];
             if (req) {
+                log( '6  @  ' + new Date().getTime())
                 req.state = 2;  //?
-                log('bbbbbbbbbbbbbbbbb')
                 req.callback && req.callback(resObj.error,resObj.data);
                 delete this.sendedRequest[id];  //?
             }
@@ -214,7 +208,7 @@ class RPCClient {
         let self = this;
         setTimeout(function (){
             self.loopPullMsg();
-        },1000)
+        },0)
     }
 
     getConnection() {  //在这里可以设计负载均衡算法； //按照依次发送

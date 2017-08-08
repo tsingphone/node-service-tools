@@ -74,7 +74,7 @@ class RPCServer {
             setTimeout(() => {
                 this.server.close();
                 this.server.listen(this.options.port);
-            }, 1000);
+            }, 0);
         })
     }
 
@@ -85,7 +85,8 @@ class RPCServer {
         })
 
         sock.on('data', function (data) {
-            log(data.toString())
+            log( '1  @  ' + new Date().getTime())
+            //log(data.toString())
             let msgObj = JSON.parse(data.toString());
             self.handleMsgObject(sock,msgObj);
 
@@ -125,7 +126,7 @@ class RPCServer {
     }
 
     handleMsgObject(sock,msgObj) {
-        log(msgObj);
+        //log(msgObj);
         let self = this;
         if (msgObj.type === 'auth') {
             self.auth(function (err,result) {
@@ -144,6 +145,7 @@ class RPCServer {
         else {  //if (msgObj.type === 'call')
             msgObj.socketId = sock.id;
             this.waitingQue.push(msgObj);
+            log( '2  @  ' + new Date().getTime())
         }
     }
 
@@ -152,11 +154,12 @@ class RPCServer {
     }*/
 
     loopDealMsg() {
-        log(1)
+        //log(1)
         let self = this;
         while (this.waitingQue.length>0) {
-            log(3)
-            log(this.waitingQue)
+            //log(3)
+            log( '3  @  ' + new Date().getTime())
+            //log(this.waitingQue)
             //  id,serviceName,argsArray
             let msgObj = this.waitingQue.shift();
             let {id,serviceName,argsArray} = msgObj;
@@ -179,17 +182,19 @@ class RPCServer {
             };
             argsArray.push(callback);
             m.apply(null,argsArray);
+            log( '4  @  ' + new Date().getTime())
         }
         //process.nextTick(this.loopSendMsg());
         setTimeout(function (){
             self.loopDealMsg();
-        },500)
+        },0)
     }
 
     sendMsg(socketId,msgObj) {
         let sock = this.connections[socketId];
         if (sock) { //??  && sock.isActive
            sock.write(JSON.stringify(msgObj));
+            log( '99  @  ' + new Date().getTime())
         }
     }
 

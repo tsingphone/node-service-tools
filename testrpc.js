@@ -6,12 +6,13 @@ let rpc = new RPC();
 
 
 setInterval(function () {
+    log( '1  @  ' + new Date().getTime())
     rpc.callService('add',[1,2],function (err,data) {
-        log('rrrssrrrrrrrrrrrrrrrrrrrrrrrrrrr')
-        log(err);
-        log(data);
+        log('99  @  ' + new Date().getTime())
+        //log(err);
+        //log(data);
     })
-}, 2000)
+}, 3000)
 
 /*var f = function (a,b) {
     return (a + b);
