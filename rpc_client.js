@@ -21,10 +21,9 @@ class SocketClient {
 
 
 
-    sendMsg(msg) {
+    sendMsg(msgObj) {
         log('send')
-        log(msg)
-        this.write(msg)
+        this.client.write(JSON.stringify(msgObj))
         //    let buf1 = Buffer.from(msg);
         /*        let buf1 = Buffer.alloc(810).fill('我');
                 let len = buf1.length;
@@ -43,7 +42,7 @@ class SocketClient {
             log('client 已建立连接');
             let msg = {
                 type: 'auth',
-                data: self.rpcServer.seq
+                data: self.rpcServer.id
             }
             self.client.write(JSON.stringify(msg))
         });
@@ -56,18 +55,14 @@ class SocketClient {
             log('socket连接错误，将在1秒后重连');
             //log(err);
             setTimeout(() => {
-                this.client.end();
-                this.client.connect(options);
+                self.client.end();
+                self.client.connect(self.options);
             }, 1000);
         })
 
         this.client.on('data',function (data) {
-            log(data.toString())
-
-
-            log(msgObj)
+            self.handleMsgObject(JSON.parse(data.toString()));
             //this.client.responseCall(JSON.parse(data.toString()))
-
         })
 
         this.client.on('end',function (data) {
@@ -83,6 +78,21 @@ class SocketClient {
             log('timeout')
         })
 
+    }
+
+    handleMsgObject(msgObj){
+        if(msgObj.type==='auth') {
+            if(msgObj.data && !msgObj.error) {
+                log('连接授权认证成功')
+                this.isActive = 1;
+            } else {
+                log('连接授权认证失败')
+            }
+        }
+        else {  //计算结果返回
+            log(msgObj)
+            this.rpcServer.receivedQue.push(msgObj);
+        }
     }
 }
 
@@ -101,7 +111,9 @@ class RPCClient {
                 port:8000
             }
         ];
-        this.services = services;
+
+        this.id = Math.ceil(Math.random()*10000000000);
+
         this.options = options;
         this.waitingQue = [];
         this.sendedRequest = {};  //Hash Object
@@ -110,7 +122,7 @@ class RPCClient {
         this.seq = 0;
         this.curConnIndex = 0;
         this.connections = [];
-        for(let s of this.services) {
+        for(let s of services) {
             let sock = new SocketClient(this.options);
             sock.rpcServer = this;
             this.connections.push(sock);
@@ -166,7 +178,12 @@ class RPCClient {
             }
             else {
                 this.sendedRequest[msg.id] = msg;
-                conn.sendMsg(msg);
+                //id,serviceName,argsArray,callback
+                conn.sendMsg({
+                    id:msg.id,
+                    serviceName:msg.serviceName,
+                    argsArray:msg.argsArray
+                });
             }
         }
         //process.nextTick(this.loopSendMsg());
@@ -200,21 +217,21 @@ class RPCClient {
     }
 
     getConnection() {  //在这里可以设计负载均衡算法； //按照依次发送
-        let n = this.services.length;
+        let n = this.connections.length;
         let i = this.curConnIndex;
         let c = 0;
         do{
             c++;
             i++;
             if (i>=n) i=0;
-            if (this.services[i].isActive===1) break;
+            if (this.connections[i].isActive===1) break;
             if (c>n) {
                 return null;
                 break;
             };
         } while (true)
         this.curConnIndex = i;
-        return this.services[i];
+        return this.connections[i];
     }
 
     //从服务器获取方法后，赋予成员方法

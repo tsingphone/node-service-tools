@@ -5,10 +5,12 @@
 let net = require('net');
 
 let add = function (a,b,callback) {
+    log('add :' + a + ' && ' + b)
     callback(null,a+b);
 }
 
 let err = function (a,b,callback) {
+    log('err :' + a + ' && ' + b)
     callback('这是测试错误',null);
 }
 
@@ -32,11 +34,14 @@ class RPCServer {
 
         this.waitingQue = [];
         this.callingRequest = {};  //Hash Object
+        this.connections = {};
 
-        this.connection = net.createServer(options);
+        this.server = net.createServer(options);
         this.bindingServerEvent();
-        this.connection.listen(this.options.port);
+        this.server.listen(this.options.port);
         this.registerService();
+        this.loopDealMsg();
+
     };
 
     callService(reqJson) {
@@ -52,23 +57,23 @@ class RPCServer {
 
     bindingServerEvent() {
         let self = this;
-        this.connection.on('connection',function (sock) {
+        this.server.on('connection',function (sock) {
             //sock.write('test from server')
             //log(sock);
             self.bindingSocketEvent(sock);
 
         });
 
-        this.connection.on('close',function (sock) {
+        this.server.on('close',function (sock) {
             log('服务器关闭')
         });
 
-        this.connection.on('error',function (err) {
+        this.server.on('error',function (err) {
             log('socket 服务器错误，将在1秒后重连');
             log(err);
             setTimeout(() => {
-                this.connection.close();
-                this.connection.listen(this.options.port);
+                this.server.close();
+                this.server.listen(this.options.port);
             }, 1000);
         })
     }
@@ -80,15 +85,16 @@ class RPCServer {
         })
 
         sock.on('data', function (data) {
+            log(data.toString())
             let msgObj = JSON.parse(data.toString());
-            self.handleMsgObject(msgObj);
+            self.handleMsgObject(sock,msgObj);
 
             /* if (data.length>1000)
                  log('sock data: ' + data.length)
              else
                  log('---------: ' + data.length)*/
-            log(JSON.parse(data.toString()));
-            //this.connection.callService(sock,JSON.parse(data.toString()));
+            //log(JSON.parse(data.toString()));
+            //this.server.callService(sock,JSON.parse(data.toString()));
 
             //let len = data.readInt16BE(0);
             //log(len.toString(10));
@@ -118,39 +124,73 @@ class RPCServer {
         })
     }
 
-    handleMsgObject(msgObj) {
+    handleMsgObject(sock,msgObj) {
+        log(msgObj);
+        let self = this;
         if (msgObj.type === 'auth') {
             self.auth(function (err,result) {
-                if (result) {  //身份验证通过
-
+                if(!err && result) {
+                    sock.id = msgObj.data;
+                    self.connections[sock.id] = sock;
                 }
-                else {
-                    let msgObj = {
-                        type:'auth',
-                        data:false
-                    }
-                    self.client.write(JSON.stringify(msgObj));
+                let msgObj2 = {
+                    type:'auth',
+                    data:result,
+                    error:err
                 }
+                sock.write(JSON.stringify(msgObj2));
             })
         }
         else {  //if (msgObj.type === 'call')
+            msgObj.socketId = sock.id;
             this.waitingQue.push(msgObj);
         }
-
     }
 
+/*    sendMsg(msgObj) {
+        this.server.write(JSON.stringify(msgObj));
+    }*/
+
     loopDealMsg() {
-        //log(1)
+        log(1)
+        let self = this;
         while (this.waitingQue.length>0) {
-            //发送请求数据
-            let msg = this.waitingQue.shift();
-            this.callingRequest[msg.id] = msg;
+            log(3)
+            log(this.waitingQue)
+            //  id,serviceName,argsArray
+            let msgObj = this.waitingQue.shift();
+            let {id,serviceName,argsArray} = msgObj;
+            this.callingRequest[id] = msgObj;
+            let m = this.methods[serviceName];
+            if (!m) {  //方法不存在
+                self.sendMsg(msgObj.socketId,{
+                    id:msgObj.id,
+                    error:'方法不存在',
+                    data:null
+                })
+                continue;
+            }
+            let callback = function (err,data) {
+                self.sendMsg(msgObj.socketId,{
+                    id:msgObj.id,
+                    error:err,
+                    data:data
+                })
+            };
+            argsArray.push(callback);
+            m.apply(null,argsArray);
         }
         //process.nextTick(this.loopSendMsg());
-        let self = this;
         setTimeout(function (){
-            self.loopSendMsg();
+            self.loopDealMsg();
         },500)
+    }
+
+    sendMsg(socketId,msgObj) {
+        let sock = this.connections[socketId];
+        if (sock) { //??  && sock.isActive
+           sock.write(JSON.stringify(msgObj));
+        }
     }
 
     auth(callback) {
