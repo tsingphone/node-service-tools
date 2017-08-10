@@ -3,6 +3,25 @@ let fs = require('fs');
 
 let log = console.log;
 
+var encodeData = function (obj) {
+     let buf1 = Buffer.from(JSON.stringify(obj));
+     let len = buf1.length;
+     let buf2 = Buffer.alloc(4).writeInt32BE(len,0);
+     return Buffer.concat([buf2, buf1],len);
+}
+
+var decodeData = function (buf) {
+    let start = 0, end = 0, total = buf.length, len = 0, objList = [];
+
+    while (start < buf.length) {
+        len = Buffer.readInt32BE(start);
+        end = start + 4 + len
+        objList.push(JSON.parse(buf.slice(start+4,end).toString()));
+        start = end;
+    }
+    return objList;
+}
+
 class SocketClient {
     constructor(options) {
         options = {
