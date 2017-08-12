@@ -5,12 +5,12 @@
 let net = require('net');
 
 let add = function (a,b,callback) {
-    log('add :' + a + ' && ' + b)
+    //log('add :' + a + ' && ' + b)
     callback(null,a+b);
 }
 
 let err = function (a,b,callback) {
-    log('err :' + a + ' && ' + b)
+    //log('err :' + a + ' && ' + b)
     callback('这是测试错误',null);
 }
 
@@ -27,7 +27,8 @@ class RPCServer {
             host:'127.0.0.1',
             port:8000,
             delay:5000,
-            maxWaiting:1000
+            maxWaiting:1000,
+            keepAlive:3000
         };
         this.options = options;
         this.methods = {};
@@ -54,14 +55,14 @@ class RPCServer {
     };
 
 
-
     bindingServerEvent() {
         let self = this;
         this.server.on('connection',function (sock) {
-            //sock.write('test from server')
-            //log(sock);
+            sock.setNoDelay(true);
+            if (self.options.keepAlive) {
+                sock.setKeepAlive(true,self.options.keepAlive);
+            }
             self.bindingSocketEvent(sock);
-
         });
 
         this.server.on('close',function (sock) {
@@ -85,8 +86,9 @@ class RPCServer {
         })
 
         sock.on('data', function (data) {
-            log( '1  @  ' + new Date().getTime())
+            //log( '1  @  ' + new Date().getTime())
             //log(data.toString())
+            log('收到数据:   ' + data.toString());
             let msgObj = JSON.parse(data.toString());
             self.handleMsgObject(sock,msgObj);
 
@@ -145,7 +147,7 @@ class RPCServer {
         else {  //if (msgObj.type === 'call')
             msgObj.socketId = sock.id;
             this.waitingQue.push(msgObj);
-            log( '2  @  ' + new Date().getTime())
+            //log( '2  @  ' + new Date().getTime())
         }
     }
 
@@ -158,7 +160,7 @@ class RPCServer {
         let self = this;
         while (this.waitingQue.length>0) {
             //log(3)
-            log( '3  @  ' + new Date().getTime())
+            //log( '3  @  ' + new Date().getTime())
             //log(this.waitingQue)
             //  id,serviceName,argsArray
             let msgObj = this.waitingQue.shift();
@@ -182,7 +184,7 @@ class RPCServer {
             };
             argsArray.push(callback);
             m.apply(null,argsArray);
-            log( '4  @  ' + new Date().getTime())
+            //log( '4  @  ' + new Date().getTime())
         }
         //process.nextTick(this.loopSendMsg());
         setImmediate(function (){
@@ -194,7 +196,7 @@ class RPCServer {
         let sock = this.connections[socketId];
         if (sock) { //??  && sock.isActive
            sock.write(JSON.stringify(msgObj));
-            log( '99  @  ' + new Date().getTime())
+            //log( '99  @  ' + new Date().getTime())
         }
     }
 
