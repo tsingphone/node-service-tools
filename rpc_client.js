@@ -45,7 +45,7 @@ class SocketClient {
         })
 
         this.client.on('data',function (data) {
-            log('收到数据:   ' + data.toString());
+            //log('收到数据:   ' + data.toString());
             //log( '4  @  ' + new Date().getTime())
             self.handleMsgObject(JSON.parse(data.toString()));
             //log( '5  @  ' + new Date().getTime())
