@@ -173,10 +173,7 @@ class RPCClient {
         if(this.seq >= 9007199254740991) {
             this.seq = 0;
         }
-        this.waitingQue.push({
-            type:'call',
-            data:s
-        })
+        this.waitingQue.push(s)
         /*
         let seq = client.seq++;
         client.counter++;
@@ -211,9 +208,12 @@ class RPCClient {
                 this.sendedRequest[msg.id.toString()] = msg;
                 //id,serviceName,argsArray,callback
                 conn.sendMsg({
-                    id:msg.id,
-                    serviceName:msg.serviceName,
-                    argsArray:msg.argsArray
+                    type:'call',
+                    data:{
+                        id:msg.id,
+                        serviceName:msg.serviceName,
+                        argsArray:msg.argsArray
+                    }
                 });
 
             }
