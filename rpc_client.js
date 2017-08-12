@@ -3,6 +3,26 @@ let fs = require('fs');
 
 let log = console.log;
 
+var encodeData = function (obj) {
+    let buf1 = Buffer.from(JSON.stringify(obj));
+    let len = buf1.length;
+    let buf2 = Buffer.alloc(4);
+    buf2.writeInt32BE(len,0);
+    return Buffer.concat([buf2, buf1],len+4);
+}
+
+var decodeData = function (buf) {
+    let start = 0, end = 0, total = buf.length, len = 0, objList = [];
+    while (start < total) {
+        len = buf.readInt32BE(start);
+        end = start + 4 + len
+        objList.push(JSON.parse(buf.slice(start+4,end).toString()));
+        start = end;
+    }
+    return objList;
+}
+
+
 class SocketClient {
     constructor(options) {
         this.options = options;
@@ -12,6 +32,18 @@ class SocketClient {
         this.client.connect(options);
         this.client.setNoDelay(true);
         this.bindingEvent();
+    }
+
+    sendMsg(msgObj) {
+        log( '3  @  ' + new Date().getTime())
+        this.client.write(encodeData(msgObj))
+        //    let buf1 = Buffer.from(msg);
+        /*        let buf1 = Buffer.alloc(810).fill('我');
+                let len = buf1.length;
+                let buf2 = Buffer.alloc(2);
+                buf2.writeInt16BE(len,0)
+                let buf = Buffer.concat([buf2, buf1],len + buf2.length)
+                this.write(buf);*/
     }
 
     bindingEvent() {
@@ -24,7 +56,7 @@ class SocketClient {
                 type: 'auth',
                 data: self.owner.id
             }
-            self.client.write(JSON.stringify(msg))
+            self.client.write(encodeData(msg))
         });
 
         this.client.on('close',function (had_error) {
@@ -45,10 +77,12 @@ class SocketClient {
         })
 
         this.client.on('data',function (data) {
-            //log('收到数据:   ' + data.toString());
-            //log( '4  @  ' + new Date().getTime())
-            self.handleMsgObject(JSON.parse(data.toString()));
-            //log( '5  @  ' + new Date().getTime())
+            log( '4  @  ' + new Date().getTime())
+            let objList = decodeData(data);
+            for(let obj of objList) {
+                self.handleMsgObject(obj);
+            }
+            log( '5  @  ' + new Date().getTime())
             //this.client.responseCall(JSON.parse(data.toString()))
         })
 

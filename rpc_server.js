@@ -15,6 +15,24 @@ let err = function (a,b,callback) {
 }
 
 
+var encodeData = function (obj) {
+    let buf1 = Buffer.from(JSON.stringify(obj));
+    let len = buf1.length;
+    let buf2 = Buffer.alloc(4);
+    buf2.writeInt32BE(len,0);
+    return Buffer.concat([buf2, buf1],len+4);
+}
+
+var decodeData = function (buf) {
+    let start = 0, end = 0, total = buf.length, len = 0, objList = [];
+    while (start < total) {
+        len = buf.readInt32BE(start);
+        end = start + 4 + len
+        objList.push(JSON.parse(buf.slice(start+4,end).toString()));
+        start = end;
+    }
+    return objList;
+}
 
 let log = console.log;
 let options = {
@@ -85,12 +103,13 @@ class RPCServer {
             log('sock connect')
         })
 
-        sock.on('data', function (data) {
-            //log( '1  @  ' + new Date().getTime())
+        sock.on('data', function (buf) {
+            log( '1  @  ' + new Date().getTime())
             //log(data.toString())
-            log('收到数据:   ' + data.toString());
-            let msgObj = JSON.parse(data.toString());
-            self.handleMsgObject(sock,msgObj);
+            let objList = decodeData(buf);
+            for(let obj of objList) {
+                self.handleMsgObject(sock,obj);
+            }
 
             /* if (data.length>1000)
                  log('sock data: ' + data.length)
@@ -141,7 +160,7 @@ class RPCServer {
                     data:result,
                     error:err
                 }
-                sock.write(JSON.stringify(msgObj2));
+                sock.write(encodeData(msgObj2));
             })
         }
         else {  //if (msgObj.type === 'call')
@@ -195,8 +214,8 @@ class RPCServer {
     sendMsg(socketId,msgObj) {
         let sock = this.connections[socketId];
         if (sock) { //??  && sock.isActive
-           sock.write(JSON.stringify(msgObj));
-            //log( '99  @  ' + new Date().getTime())
+           sock.write(encodeData(msgObj));
+            log( '99  @  ' + new Date().getTime())
         }
     }
 
