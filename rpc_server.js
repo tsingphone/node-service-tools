@@ -58,7 +58,8 @@ class RPCServer {
         this.server = net.createServer(options);
         this.bindingServerEvent();
         this.server.listen(this.options.port);
-        this.registerService();
+        this.registerMethod('add',add);
+        this.registerMethod('err',err);
         this.loopDealMsg();
 
     };
@@ -77,6 +78,7 @@ class RPCServer {
         let self = this;
         this.server.on('connection',function (sock) {
             sock.setNoDelay(true);
+            sock.owner = self;
             if (self.options.keepAlive) {
                 sock.setKeepAlive(true,self.options.keepAlive);
             }
@@ -88,7 +90,7 @@ class RPCServer {
         });
 
         this.server.on('error',function (err) {
-            log('socket 服务器错误，将在1秒后重连');
+            log('socket 服务器错误，将在1秒后重新监听端口');
             log(err);
             setTimeout(() => {
                 this.server.close();
@@ -98,31 +100,22 @@ class RPCServer {
     }
 
     bindingSocketEvent(sock) {
-        let self = this;
         sock.on('connect', function (data) {
             log('sock connect')
         })
 
         sock.on('data', function (buf) {
+            let self = sock.owner;
             log( '1  @  ' + new Date().getTime())
             //log(data.toString())
             let objList = decodeData(buf);
             for(let obj of objList) {
-                self.handleMsgObject(sock,obj);
+                if (typeof self['on_' + obj.type] === 'function') {
+                    self['on_' + obj.type](sock, obj.data)
+                }
             }
 
-            /* if (data.length>1000)
-                 log('sock data: ' + data.length)
-             else
-                 log('---------: ' + data.length)*/
-            //log(JSON.parse(data.toString()));
-            //this.server.callService(sock,JSON.parse(data.toString()));
-
-            //let len = data.readInt16BE(0);
-            //log(len.toString(10));
-            //log(data.toString())
-            //log(sock)
-
+            log(objList);
         })
 
         sock.on('close', function (data) {
@@ -219,13 +212,37 @@ class RPCServer {
         }
     }
 
-    auth(callback) {
-        return callback(null,true);
+    on_init(sock,msgObj) {
+        let self = sock.owner;
+        //这里处理连接授权认证
+        let auth = true, err=null;
+        let methods = [];
+        if(auth) {  //验证成功
+            sock.id = msgObj.connection_id;
+            self.connections[sock.id] = sock;
+        }
+        else {
+
+        }
+        let resObj = {
+            type:'auth',
+            data:{
+                authenticated: auth,
+                methods:Object.keys(self.methods),
+                error:err
+            }
+        }
+        sock.write(encodeData(resObj));
     }
 
-    registerService() {
-        this.methods['add'] = add;
-        this.methods['err'] = err;
+    on_call(sock,msgObj) {
+        msgObj.socketId = sock.id;
+        this.waitingQue.push(msgObj);
+    }
+
+    registerMethod(serviceName, func) {
+        //this.methods['add'] = add;
+        this.methods[serviceName] = func;
     }
 }
 

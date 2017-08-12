@@ -28,15 +28,15 @@ class SocketClient {
         this.options = options;
         this.connected = false;
         this.authenticated = false;
-        this.client = net.Socket();
-        this.client.connect(options);
-        this.client.setNoDelay(true);
-        this.bindingEvent();
+        this.connection = net.Socket();
+        this.connection.connect(options);
+        this.connection.setNoDelay(true);
+        this.bindingEvent(this);
     }
 
     sendMsg(msgObj) {
         log( '3  @  ' + new Date().getTime())
-        this.client.write(encodeData(msgObj))
+        this.connection.write(encodeData(msgObj))
         //    let buf1 = Buffer.from(msg);
         /*        let buf1 = Buffer.alloc(810).fill('我');
                 let len = buf1.length;
@@ -46,71 +46,60 @@ class SocketClient {
                 this.write(buf);*/
     }
 
-    bindingEvent() {
-        let self = this;
-        this.client.on('connect',function () {
+    bindingEvent(self) {
+        this.connection.on('connect',function () {
             log(arguments)
             self.connected = true;
             log('client 已建立连接');
             let msg = {
-                type: 'auth',
-                data: self.owner.id
+                type: 'init',
+                data: {
+                    connection_id : self.owner.id
+                }
             }
-            self.client.write(encodeData(msg))
+            self.connection.write(encodeData(msg))
         });
 
-        this.client.on('close',function (had_error) {
+        this.connection.on('close',function (had_error) {
             self.connected = false;
             log('服务器关闭')
             //log(err);
             if (had_error) {
                 log('socket错误，将在1秒后重连');
                 setTimeout(() => {
-                    self.client.end();
-                    self.client.connect(self.options);
+                    self.connection.end();
+                    self.connection.connect(self.options);
                 }, 1000);
             }
         });
 
-        this.client.on('error',function (err) {
+        this.connection.on('error',function (err) {
             log('error')
         })
 
-        this.client.on('data',function (data) {
-            log( '4  @  ' + new Date().getTime())
-            let objList = decodeData(data);
+        this.connection.on('data',function (buf) {
+            let objList = decodeData(buf);
             for(let obj of objList) {
-                self.handleMsgObject(obj);
+                if (typeof self['on_' + obj.type] === 'function') {
+                    self['on_' + obj.type](self, obj.data)
+                }
             }
-            log( '5  @  ' + new Date().getTime())
-            //this.client.responseCall(JSON.parse(data.toString()))
+            //this.connection.responseCall(JSON.parse(data.toString()))
         })
 
-        this.client.on('end',function (data) {
+        this.connection.on('end',function (data) {
             log('end')
         })
 
 
-        this.client.on('drain',function (data) {
+        this.connection.on('drain',function (data) {
             log('drain')
         })
 
-        this.client.on('timeout',function (data) {
+        this.connection.on('timeout',function (data) {
             log('timeout')
         })
 
-    }
-
-    sendMsg(msgObj) {
-        //  log( '3  @  ' + new Date().getTime())
-        this.client.write(JSON.stringify(msgObj))
-        //    let buf1 = Buffer.from(msg);
-        /*        let buf1 = Buffer.alloc(810).fill('我');
-         let len = buf1.length;
-         let buf2 = Buffer.alloc(2);
-         buf2.writeInt16BE(len,0)
-         let buf = Buffer.concat([buf2, buf1],len + buf2.length)
-         this.write(buf);*/
     }
 
     handleMsgObject(msgObj){
@@ -125,6 +114,27 @@ class SocketClient {
         else {  //计算结果返回
             this.owner.receivedQue.push(msgObj);
         }
+    }
+
+    on_auth(sock, data) {
+        if(data.authenticated) {  //验证成功
+            log('连接授权认证成功')
+            this.authenticated = true;
+            //
+            if (!data.methods || data.methods.length===0) {
+                log('服务器还没有暴露接口方法')
+            }
+            else {
+                sock.owner.setMethods(data.methods)
+            }
+        }
+        else {  //验证失败
+            log('连接授权认证失败')
+        }
+    }
+
+    on_call(sock, data) {
+        sock.owner.receivedQue.push(msgObj);
     }
 }
 
@@ -163,7 +173,10 @@ class RPCClient {
         if(this.seq >= 9007199254740991) {
             this.seq = 0;
         }
-        this.waitingQue.push(s)
+        this.waitingQue.push({
+            type:'call',
+            data:s
+        })
         /*
         let seq = client.seq++;
         client.counter++;
@@ -279,6 +292,7 @@ class RPCClient {
             f.serviceName = m;
             this[m] = f;
         }
+        this.methodAvailable
 
     }
 
