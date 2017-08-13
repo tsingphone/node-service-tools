@@ -46,13 +46,14 @@ class RPCServer {
             port:8000,
             delay:5000,
             maxWaiting:1000,
+            maxBatchExecute:50,
             keepAlive:3000
         };
         this.options = options;
         this.methods = {};
 
         this.waitingQue = [];
-        this.callingRequest = {};  //Hash Object
+        //this.callingRequest = {};  //Hash Object
         this.connections = {};
 
         this.server = net.createServer(options);
@@ -60,7 +61,7 @@ class RPCServer {
         this.server.listen(this.options.port);
         this.registerMethod('add',add);
         this.registerMethod('err',err);
-        this.loopDealMsg();
+        this.loopPullMsg();
 
     };
 
@@ -168,26 +169,30 @@ class RPCServer {
         this.server.write(JSON.stringify(msgObj));
     }*/
 
-    loopDealMsg() {
+    loopPullMsg() {
         //log(1)
         let self = this;
-        while (this.waitingQue.length>0) {
+        let i = 0;
+        while (this.waitingQue.length>0 && (this.options.maxBatchExecute<=0 || i < this.options.maxBatchExecute)) {
             //log(3)
             //log( '3  @  ' + new Date().getTime())
             //log(this.waitingQue)
             //  id,serviceName,argsArray
             let msgObj = this.waitingQue.shift();
             let {id,serviceName,argsArray} = msgObj;
-            this.callingRequest[id] = msgObj;
             let m = this.methods[serviceName];
             if (!m) {  //方法不存在
                 self.sendMsgById(msgObj.socketId,{
-                    id:msgObj.id,
-                    error:'方法不存在',
-                    data:null
+                    type:'call',
+                    data:{
+                        id:msgObj.id,
+                        error:'方法不存在',
+                        data:null
+                    }
                 })
                 continue;
             }
+            //this.callingRequest[id] = msgObj;
             let callback = function (err,data) {
                 self.sendMsgById(msgObj.socketId,{
                     type:'call',
@@ -200,11 +205,12 @@ class RPCServer {
             };
             argsArray.push(callback);
             m.apply(null,argsArray);
+            i++;
             //log( '4  @  ' + new Date().getTime())
-        }
+        }  //end while
         //process.nextTick(this.loopSendMsg());
         setImmediate(function (){
-            self.loopDealMsg();
+            self.loopPullMsg();
         })
     }
 
@@ -251,8 +257,20 @@ class RPCServer {
     }
 
     on_call(sock,msgObj) {
-        msgObj.socketId = sock.id;
-        this.waitingQue.push(msgObj);
+        if (this.waitingQue.length > this.options.maxWaiting) {
+            this.sendMsg(sock,{
+                type:'call',
+                data:{
+                    id:msgObj.id,
+                    error:'服务器繁忙，请求队列已满',
+                    data:null
+                }
+            })
+        }
+        else {
+            msgObj.socketId = sock.id;
+            this.waitingQue.push(msgObj);
+        }
     }
 
     registerMethod(serviceName, func) {

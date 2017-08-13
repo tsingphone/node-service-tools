@@ -4,7 +4,8 @@ let log = console.log;
 
 let options = {
     delay:5000,
-    maxWaiting:1000
+    maxWaiting:1000,
+    maxBatchExecute:50,
 };
 let services = [
     {
@@ -35,7 +36,7 @@ setInterval(function () {
         //log(err);
         //log(data);
     })*/
-}, 3000)
+}, 30)
 
 /*var f = function (a,b) {
     return (a + b);

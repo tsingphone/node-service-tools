@@ -102,20 +102,6 @@ class SocketClient {
 
     }
 
-    handleMsgObject(msgObj){
-        if(msgObj.type==='auth') {
-            if(msgObj.data && !msgObj.error) {
-                log('连接授权认证成功')
-                this.authenticated = true;
-            } else {
-                log('连接授权认证失败')
-            }
-        }
-        else {  //计算结果返回
-            this.owner.receivedQue.push(msgObj);
-        }
-    }
-
     on_init(sock, data) {
         if(data.authenticated) {  //验证成功
             log('连接授权认证成功')
@@ -167,7 +153,7 @@ class RPCClient {
     callService(serviceName,argsArray,callback) {
         //debugger
         if (this.waitingQue.length >= this.options.maxWaiting) {
-            callback('服务器繁忙',null);
+            callback('请求过于频繁，请求队列已满',null);
             return;
         }
         let s = {serviceName,argsArray,callback};
@@ -198,7 +184,8 @@ class RPCClient {
 
     loopSendMsg() {
         //log(1)
-        while (this.waitingQue.length>0) {
+        let i = 0;
+        while (this.waitingQue.length>0 && (this.options.maxBatchExecute<=0 || i < this.options.maxBatchExecute)) {
             //发送请求数据
             log( '2  @  ' + new Date().getTime())
             let msg = this.waitingQue.shift();
@@ -217,7 +204,7 @@ class RPCClient {
                         argsArray:msg.argsArray
                     }
                 });
-
+                i++;
             }
         }
         //process.nextTick(this.loopSendMsg());
@@ -238,9 +225,11 @@ class RPCClient {
             let req = this.sendedRequest[id.toString()];
             if (req) {
                 log( '6  pull result @  ' + new Date().getTime())
-                req.state = 2;  //?
+                //req.state = 2;  //?
                 req.callback && req.callback(resObj.error,resObj.data);
                 delete this.sendedRequest[id];  //?
+                log( '7 @  ')
+                log(this.sendedRequest)
             }
         }
         //process.nextTick(this.loopPullMsg);
