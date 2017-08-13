@@ -1,4 +1,4 @@
-const RPC = require('./lib/rpc_client');
+const RPC = require('../').RPC_Client;
 
 let log = console.log;
 
