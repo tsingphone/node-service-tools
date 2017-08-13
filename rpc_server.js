@@ -109,13 +109,14 @@ class RPCServer {
             log( '1  @  ' + new Date().getTime())
             //log(data.toString())
             let objList = decodeData(buf);
+            log('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+            log( new Date().getTime());
+            log(objList);
             for(let obj of objList) {
                 if (typeof self['on_' + obj.type] === 'function') {
                     self['on_' + obj.type](sock, obj.data)
                 }
             }
-
-            log(objList);
         })
 
         sock.on('close', function (data) {
@@ -180,7 +181,7 @@ class RPCServer {
             this.callingRequest[id] = msgObj;
             let m = this.methods[serviceName];
             if (!m) {  //方法不存在
-                self.sendMsg(msgObj.socketId,{
+                self.sendMsgById(msgObj.socketId,{
                     id:msgObj.id,
                     error:'方法不存在',
                     data:null
@@ -188,10 +189,13 @@ class RPCServer {
                 continue;
             }
             let callback = function (err,data) {
-                self.sendMsg(msgObj.socketId,{
-                    id:msgObj.id,
-                    error:err,
-                    data:data
+                self.sendMsgById(msgObj.socketId,{
+                    type:'call',
+                    data:{
+                        id:msgObj.id,
+                        error:err,
+                        data:data
+                    }
                 })
             };
             argsArray.push(callback);
@@ -204,12 +208,22 @@ class RPCServer {
         })
     }
 
-    sendMsg(socketId,msgObj) {
+    sendMsgById(socketId,msgObj) {
+        log('ssssssssssssssssssssssssssssssssssssss')
+        log( new Date().getTime());
+        log(msgObj)
         let sock = this.connections[socketId];
         if (sock) { //??  && sock.isActive
            sock.write(encodeData(msgObj));
             log( '99  @  ' + new Date().getTime())
         }
+    }
+
+    sendMsg(sock,msgObj) {
+        log('ssssssssssssssssssssssssssssssssssssss')
+        log( new Date().getTime());
+        log(msgObj)
+        sock.write(encodeData(msgObj));
     }
 
     on_init(sock,msgObj) {
@@ -225,13 +239,14 @@ class RPCServer {
 
         }
         let resObj = {
-            type:'auth',
+            type:'init',
             data:{
                 authenticated: auth,
                 methods:Object.keys(self.methods),
                 error:err
             }
         }
+        log(resObj)
         sock.write(encodeData(resObj));
     }
 

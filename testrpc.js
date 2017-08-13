@@ -23,7 +23,7 @@ setInterval(function () {
     log( '1  @  ' + new Date().getTime() + ' @ ' + a + ' @ ' + b)
     rpc.add(a,b,function (err,data) {
         let e = new Date().getTime();
-        log('99  @  ' + a + ' @ ' + b + ' @ ' + new Date().getTime() + ' @ ' + data)
+        log('99  @  ' + a + ' @ ' + b + ' @ 结果等于'  + ' @ ' + data)
         log(e - s);
     })
 

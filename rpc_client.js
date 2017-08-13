@@ -35,7 +35,7 @@ class SocketClient {
     }
 
     sendMsg(msgObj) {
-        log( '3  @  ' + new Date().getTime())
+        log( '3  sending  @  ' + new Date().getTime())
         this.connection.write(encodeData(msgObj))
         //    let buf1 = Buffer.from(msg);
         /*        let buf1 = Buffer.alloc(810).fill('我');
@@ -116,7 +116,7 @@ class SocketClient {
         }
     }
 
-    on_auth(sock, data) {
+    on_init(sock, data) {
         if(data.authenticated) {  //验证成功
             log('连接授权认证成功')
             this.authenticated = true;
@@ -133,7 +133,8 @@ class SocketClient {
         }
     }
 
-    on_call(sock, data) {
+    on_call(sock, msgObj) {
+        log( '4  receiving  @  ' + new Date().getTime())
         sock.owner.receivedQue.push(msgObj);
     }
 }
@@ -147,11 +148,12 @@ class RPCClient {
         this.waitingQue = [];
         this.sendedRequest = {};  //Hash Object
         this.receivedQue = [];
+        this.methods = [];
 
         this.seq = 0;
         this.curConnIndex = 0;
         this.connections = [];
-        this.setMethods();  //??
+        //this.setMethods();  //??
         for(let s of services) {
             let sock = new SocketClient(s);  //负责管理连接和调用
             sock.owner = this;
@@ -198,7 +200,7 @@ class RPCClient {
         //log(1)
         while (this.waitingQue.length>0) {
             //发送请求数据
-            //log( '2  @  ' + new Date().getTime())
+            log( '2  @  ' + new Date().getTime())
             let msg = this.waitingQue.shift();
             let conn = this.getConnection();
             if (!conn) {
@@ -235,7 +237,7 @@ class RPCClient {
             }*/
             let req = this.sendedRequest[id.toString()];
             if (req) {
-                //log( '6  @  ' + new Date().getTime())
+                log( '6  pull result @  ' + new Date().getTime())
                 req.state = 2;  //?
                 req.callback && req.callback(resObj.error,resObj.data);
                 delete this.sendedRequest[id];  //?
@@ -267,8 +269,11 @@ class RPCClient {
     }
 
     //从服务器获取方法后，赋予成员方法
-    setMethods() {
-        let names = ['add','err'];
+    setMethods(names) {
+        if (this.methods.length > 0) {
+            return;
+        }
+        //let names = ['add','err'];
         let self = this;
         for(let m of names) {
             let f = function () {
@@ -292,7 +297,8 @@ class RPCClient {
             f.serviceName = m;
             this[m] = f;
         }
-        this.methodAvailable
+        this.methods = names;
+        log('已完成初始化，可用开始服务调用了')
 
     }
 

@@ -7,8 +7,7 @@
     "type": "git",
     "url": "https://github.com/tsingphone/node-service-tools.git"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {},
   "engines": {
     "node": ">=6.0"
