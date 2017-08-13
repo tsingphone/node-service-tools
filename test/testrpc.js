@@ -36,7 +36,7 @@ setInterval(function () {
         //log(err);
         //log(data);
     })*/
-}, 1000)
+}, 30)
 
 /*var f = function (a,b) {
     return (a + b);
