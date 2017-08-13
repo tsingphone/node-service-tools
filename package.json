@@ -1,8 +1,8 @@
 {
   "name": "node-service",
   "version": "0.0.1",
-  "description": "node为服务框架",
-  "main": "server",
+  "description": "基于TCP和请求队列的负载均衡轻量级RPC框架",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/tsingphone/node-service-tools.git"
@@ -16,10 +16,8 @@
   "keywords": [
     "node",
     "rpc",
-    "service",
-    "etcd",
-    "zmq"
+    "service"
   ],
   "license": "MIT",
-  "author": "hu qing feng"
+  "author": "tsingphone 尘中之尘"
 }

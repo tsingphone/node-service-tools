@@ -1,4 +1,4 @@
-const RPC = require('./rpc_client');
+const RPC = require('./lib/rpc_client');
 
 let log = console.log;
 
@@ -21,11 +21,11 @@ setInterval(function () {
     let s = new Date().getTime();
     let a = Math.random()*100;
     let b = Math.random()*100;
-    log( '1  @  ' + new Date().getTime() + ' @ ' + a + ' @ ' + b)
+    //log( '1  @  ' + new Date().getTime() + ' @ ' + a + ' @ ' + b)
     rpc.add(a,b,function (err,data) {
         let e = new Date().getTime();
-        log('99  @  ' + a + ' @ ' + b + ' @ 结果等于'  + ' @ ' + data)
-        log(e - s);
+        //log('99  @  ' + a + ' @ ' + b + ' @ 结果等于'  + ' @ ' + data)
+        //log(e - s);
     })
 
 /*    rpc.err(2,3,function (err,data) {
@@ -36,7 +36,7 @@ setInterval(function () {
         //log(err);
         //log(data);
     })*/
-}, 30)
+}, 1000)
 
 /*var f = function (a,b) {
     return (a + b);
