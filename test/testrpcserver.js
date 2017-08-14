@@ -1,5 +1,15 @@
 const RPC_Server = require('../').RPC_Server;
-let rpc = new RPC_Server({})
+
+
+let options = {
+    port:8000,
+    delay:5000,
+    maxWaiting:1000,
+    maxBatchExecute:50,
+    keepAlive:3000
+};
+
+let rpc = new RPC_Server(options);
 
 let add = function (a,b,callback) {
     //log('add :' + a + ' && ' + b)
