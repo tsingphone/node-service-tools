@@ -9,19 +9,26 @@ let options = {
     keepAlive:3000
 };
 
-let rpc = new RPC_Server(options);
-
-let add = function (a,b,callback) {
-    //log('add :' + a + ' && ' + b)
-    callback(null,a+b);
+let arguments = process.argv.splice(2,1);
+if (arguments.length>0) {
+    options.port = parseInt(arguments[0]);
 }
 
-let err = function (a,b,callback) {
-    //log('err :' + a + ' && ' + b)
-    callback('这是测试错误',null);
+let rpc = new RPC_Server(options);
+
+let add = function (a,b,delay,callback) {
+    setTimeout(function () {
+        callback(null,a+b);
+    },delay)
+}
+
+let minus = function (a,b,delay,callback) {
+    setTimeout(function () {
+        callback(null,a-b);
+    },delay)
 }
 
 rpc.registerMethod('add',add);
-rpc.registerMethod('err',err);
+rpc.registerMethod('minus',minus);
 
 

@@ -23,3 +23,23 @@ testing
 
 3 超时清理：定时清理队列中的过期数据，防止其他异常导致的堆积，包括请求队列，发送队列，待处理队列等，发送超时任务信息
 参数：检查间隔，超时时间。得到的超时时间不是精确时间
+
+err: {code,msg}
+data:
+
+code:
+error: {code: 404, msg:'方法不存在'},
+error: {code: 408, msg:'服务器超时'},
+error: {code: 403, msg:'连接授权失败'},
+
+type
+data
+
+
+type
+id:
+error: {code: 408, msg:'服务器超时'},
+result:
+
+
+
