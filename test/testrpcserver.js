@@ -9,9 +9,9 @@ let options = {
     keepAlive:3000
 };
 
-let arguments = process.argv.splice(2,1);
-if (arguments.length>0) {
-    options.port = parseInt(arguments[0]);
+let arguments2 = process.argv.splice(2,1);
+if (arguments2.length>0) {
+    options.port = parseInt(arguments2[0]);
 }
 
 let rpc = new RPC_Server(options);

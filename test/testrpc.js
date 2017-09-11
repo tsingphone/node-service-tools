@@ -9,10 +9,7 @@ let options = {
 };
 
 let services = [
-    {
-        host:'127.0.0.1',
-        port:8080
-    }
+    '127.0.0.1:8080'
 ];
 let rpc = new RPC(options,services);
 
